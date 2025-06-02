@@ -1,0 +1,120 @@
+#[allow(unused_imports)]
+use std::{any::Any, io::{Cursor, Read}, rc::Rc, thread::spawn};
+
+use unique_rc::UniqRc;
+
+#[test]
+fn send() {
+    let rc = Rc::new(2);
+    let weak = Rc::downgrade(&rc);
+
+    assert_eq!(weak.upgrade(), Some(Rc::new(2)));
+
+    let urc = UniqRc::new(rc);
+
+    spawn(move || {
+        assert_eq!(*urc, 2);
+    }).join().unwrap();
+
+    assert_eq!(weak.upgrade(), None);
+}
+
+#[test]
+fn send_cloned() {
+    let rc = Rc::new(2);
+    let _rc2 = Rc::clone(&rc);
+    let weak = Rc::downgrade(&rc);
+
+    assert_eq!(weak.upgrade(), Some(Rc::new(2)));
+
+    let urc = UniqRc::new(rc);
+
+    spawn(move || {
+        assert_eq!(*urc, 2);
+    }).join().unwrap();
+
+    assert_eq!(weak.upgrade(), Some(Rc::new(2)));
+}
+
+#[test]
+fn inner() {
+    let rc = Rc::new("a".to_owned());
+    let _rc2 = Rc::clone(&rc);
+    let urc = UniqRc::new(rc);
+
+    assert_eq!(UniqRc::into_inner(urc), "a");
+}
+
+#[test]
+fn clone() {
+    let a = UniqRc::new(Rc::new("a".to_owned()));
+    let b = a.clone();
+
+    assert_eq!(UniqRc::into_inner(a), "a");
+    assert_eq!(UniqRc::into_inner(b), "a");
+}
+
+#[test]
+fn dst_from() {
+    let a: UniqRc<str> = UniqRc::from("a");
+    assert_eq!(a.as_ref(), "a");
+}
+
+#[test]
+fn dst_clone() {
+    let a: Rc<str> = Rc::from("a");
+    let ua = UniqRc::new(a.clone());
+    assert_eq!(a.as_ref(), "a");
+    assert_eq!(ua.as_ref(), "a");
+}
+
+#[test]
+fn iter() {
+    let mut iter = UniqRc::new_value(0..5);
+    assert_eq!(iter.next(), Some(0));
+    assert_eq!(iter.nth(1), Some(2));
+}
+
+#[test]
+fn pin() {
+    let mut _p = UniqRc::pin(8);
+}
+
+#[test]
+fn into_pin() {
+    let urc = UniqRc::new_value("a".to_owned());
+    let mut _p = UniqRc::into_pin(urc);
+}
+
+#[test]
+#[ignore = "miri leak"]
+fn leak() {
+    let urc = UniqRc::new_value("foo".to_owned());
+    let leak = UniqRc::leak(urc);
+    assert_eq!(leak, "foo");
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn read() {
+    let mut from = UniqRc::new_value(Cursor::new(vec![1u8, 2, 3]));
+    let mut buf = [0; 5];
+    assert_eq!(UniqRc::read(&mut from, &mut buf).unwrap(), 3);
+    assert_eq!(buf, [1, 2, 3, 0, 0]);
+}
+
+#[test]
+fn downcast_fail() {
+    let rc: Rc<i32> = Rc::new(3);
+    let dyn_rc: Rc<dyn Any + 'static> = rc;
+    let urc = UniqRc::try_new(dyn_rc).unwrap();
+    assert!(urc.downcast::<i8>().is_err());
+}
+
+#[test]
+fn downcast() {
+    let rc: Rc<i32> = Rc::new(3);
+    let dyn_rc: Rc<dyn Any + 'static> = rc;
+    let urc = UniqRc::try_new(dyn_rc).unwrap();
+    assert_eq!(*urc.downcast::<i32>().unwrap(), 3);
+}

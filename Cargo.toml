@@ -1,0 +1,20 @@
+[package]
+name = "unique-rc"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
+
+description = "Unique owner Rc, like Box, can Send and DerefMut"
+keywords = ["rc", "arc", "unique", "box", "send"]
+categories = ["no-std", "rust-patterns", "data-structures", "concurrency"]
+repository = "https://github.com/A4-Tacks/unique-rc-rs"
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+std = []
+
+[dependencies]
