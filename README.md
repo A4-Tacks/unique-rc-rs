@@ -18,3 +18,6 @@ spawn(move || {
 
 assert_eq!(weak.upgrade(), None);
 ```
+
+# Safety
+- miri test passed
