@@ -483,6 +483,15 @@ where $Rc<T>: MakeMut<T = T>,
     #[doc = concat!("Create `Self` from [`", stringify!($Rc), "`]")]
     ///
     /// If the `strong_count != 1`, clone the data
+    ///
+    /// # Examples
+    /// ```
+    /// # use unique_rc::UniqArc;
+    /// use std::sync::Arc;
+    ///
+    /// let arc = Arc::new(8);
+    /// let uniq_arc = UniqArc::new(arc);
+    /// ```
     pub fn new(rc: $Rc<T>) -> Self {
         Self { rc: MakeMut::to_unique(rc) }
     }
@@ -501,6 +510,20 @@ impl<T: ?Sized> $UniqRc<T> {
     ///
     /// # Errors
     /// - `rc` is shared, `strong_count != 1`
+    ///
+    /// # Examples
+    /// ```
+    /// # use unique_rc::UniqArc;
+    /// use std::sync::Arc;
+    ///
+    /// let arc = Arc::new(8);
+    /// let uniq_arc = UniqArc::try_new(arc);
+    /// assert!(uniq_arc.is_ok());
+    ///
+    /// let arc = Arc::new(8);
+    /// let uniq_arc = UniqArc::try_new(arc.clone());
+    /// assert!(uniq_arc.is_err());
+    /// ```
     pub fn try_new(mut rc: $Rc<T>) -> Result<Self, $Rc<T>> {
         if $Rc::get_mut(&mut rc).is_none() {
             return Err(rc);
@@ -559,8 +582,14 @@ impl<T: ?Sized> $UniqRc<T> {
 }
 
 impl<T> $UniqRc<T> {
-    /// Create `Self` from `value`
+    /// Create `Self` from `value`, like `UniqRc::new(Rc::new(value))`
     ///
+    /// # Examples
+    /// ```
+    /// # use unique_rc::UniqArc;
+    /// let uniq_arc = UniqArc::new_value(8);
+    /// assert_eq!(*uniq_arc, 8);
+    /// ```
     pub fn new_value(value: T) -> Self {
         Self { rc: $Rc::new(value) }
     }
