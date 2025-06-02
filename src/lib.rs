@@ -23,6 +23,8 @@ use core::{
     task::{Context, Poll},
 };
 
+/// Generic [`?Sized`] `make_mut` support
+///
 /// # Safety
 /// - The implementation of [`make_mut`] and [`to_unique`]
 ///   must ensure that `strong_count` are set to 1 and there are no weak references
@@ -478,6 +480,9 @@ where Box<T>: Sync,
 impl<T: ?Sized> $UniqRc<T>
 where $Rc<T>: MakeMut<T = T>,
 {
+    #[doc = concat!("Create `Self` from [`", stringify!($Rc), "`]")]
+    ///
+    /// If the `strong_count != 1`, clone the data
     pub fn new(rc: $Rc<T>) -> Self {
         Self { rc: MakeMut::to_unique(rc) }
     }
@@ -492,6 +497,8 @@ where $Rc<T>: MakeMut<T = T>,
 }
 
 impl<T: ?Sized> $UniqRc<T> {
+    #[doc = concat!("Try create `Self` from [`", stringify!($Rc), "`]")]
+    ///
     /// # Errors
     /// - `rc` is shared, `strong_count != 1`
     pub fn try_new(mut rc: $Rc<T>) -> Result<Self, $Rc<T>> {
@@ -504,18 +511,23 @@ impl<T: ?Sized> $UniqRc<T> {
         }
     }
 
+    #[doc = concat!("Unchecked create `Self` from [`", stringify!($Rc), "`]")]
+    ///
     /// # Safety
-    /// - `strong_count == 1`
+    /// - Must `strong_count == 1`
     /// - No `Weak` exists
     pub unsafe fn new_unchecked(rc: $Rc<T>) -> Self {
         debug_assert_eq!($Rc::strong_count(&rc), 1);
         Self { rc }
     }
 
+    #[doc = concat!("Unwrap into [`", stringify!($Rc), "`]")]
     pub fn into_rc(this: Self) -> $Rc<T> {
         this.rc
     }
 
+    #[doc = concat!("Get wrapped [`", stringify!($Rc), "`]")]
+    ///
     /// # Safety
     /// - It is not allowed to change the strong and weak reference count
     pub unsafe fn get_rc_unchecked(this: &Self) -> &$Rc<T> {
@@ -547,10 +559,13 @@ impl<T: ?Sized> $UniqRc<T> {
 }
 
 impl<T> $UniqRc<T> {
+    /// Create `Self` from `value`
+    ///
     pub fn new_value(value: T) -> Self {
         Self { rc: $Rc::new(value) }
     }
 
+    /// Into inner value
     pub fn into_inner(this: Self) -> T {
         $Rc::try_unwrap(this.rc).ok().expect(concat!(
             "implement bug, inner ",
