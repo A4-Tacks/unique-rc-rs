@@ -474,6 +474,24 @@ impl<W: io::Write + ?Sized> io::Write for $UniqRc<W> {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<T: ?Sized + serde::Serialize> serde::Serialize for $UniqRc<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer,
+    {
+        (**self).serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for $UniqRc<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: serde::Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(Self::new_value)
+    }
+}
+
 unsafe impl<T: ?Sized> Sync for $UniqRc<T>
 where Box<T>: Sync,
 {
