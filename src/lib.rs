@@ -34,8 +34,10 @@ use core::{
 pub unsafe trait MakeMut: Sized {
     type T: ?Sized;
 
+    /// Like [`Rc::make_mut`]
     fn make_mut(this: &mut Self) -> &mut Self::T;
 
+    /// Create unique reference and remove `Weak`
     fn to_unique(mut this: Self) -> Self {
         Self::make_mut(&mut this);
         this
@@ -496,8 +498,11 @@ where $Rc<T>: MakeMut<T = T>,
         Self { rc: MakeMut::to_unique(rc) }
     }
 
+    /// Create from the raw pointer
+    ///
     /// # Safety
-    #[doc = concat!("- Compliant with the safety of [`", stringify!($Rc), "::from_raw`]")]
+    #[doc = concat!("- Compliant with the safety of [`", stringify!($Rc), "::from_raw`]\n")]
+    #[doc = concat!("- Must from [`", stringify!($Rc), "`] instead of [`Box`]\n")]
     pub unsafe fn from_raw(raw: *mut T) -> Self {
         unsafe {
             Self::new($Rc::from_raw(raw))
@@ -571,6 +576,11 @@ impl<T: ?Sized> $UniqRc<T> {
         }
     }
 
+    #[doc = concat!(
+        "Consumes and leaks the [`",
+        stringify!($UniqRc),
+        "`], returning a mutable reference, `&'static mut T.`"
+    )]
     pub fn leak(this: Self) -> &'static mut T {
         let ptr = Self::into_raw(this);
         unsafe { &mut *ptr }
@@ -603,6 +613,14 @@ impl<T> $UniqRc<T> {
         ))
     }
 
+    #[doc = concat!("Create pinned [`", stringify!($UniqRc), "`]")]
+    ///
+    /// # Examples
+    /// ```
+    /// # use unique_rc::UniqArc;
+    /// let uniq_arc = UniqArc::pin(8);
+    /// assert_eq!(*uniq_arc, 8);
+    /// ```
     pub fn pin(data: T) -> Pin<Self> {
         unsafe { Pin::new_unchecked(Self::new_value(data)) }
     }
