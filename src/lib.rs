@@ -216,11 +216,20 @@ impl<T: ?Sized> DerefMut for $UniqRc<T> {
 }
 
 impl<T: ?Sized, U> FromIterator<U> for $UniqRc<T>
-where $Rc<T>: FromIterator<U> + MakeMut<T = T>,
+where $Rc<T>: FromIterator<U>,
 {
+    /// Proxy [`Rc::from_iter`]
+    ///
+    /// # Panics
+    ///
+    /// If the [`Rc`] returned by the implementation is shared, then panic
+    #[track_caller]
     fn from_iter<I: IntoIterator<Item = U>>(iter: I) -> Self {
-        let rc = $Rc::from_iter(iter);
-        Self::new(rc)
+        let mut rc = $Rc::from_iter(iter);
+        assert!($Rc::get_mut(&mut rc).is_some(),
+                "The FromIterator implementation supported by UniqRc \
+                 should not return shared Rc");
+        unsafe { Self::new_unchecked(rc) }
     }
 }
 

@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use std::{any::Any, io::{Cursor, Read}, rc::Rc, thread::spawn};
+use std::{any::Any, io::{Cursor, Read}, rc::{Rc, Weak}, thread::spawn};
 
 use unique_rc::UniqRc;
 
@@ -117,4 +117,26 @@ fn downcast() {
     let dyn_rc: Rc<dyn Any + 'static> = rc;
     let urc = UniqRc::try_new(dyn_rc).unwrap();
     assert_eq!(*urc.downcast::<i32>().unwrap(), 3);
+}
+
+#[test]
+fn slice_rc_from_iter() {
+    let rc = UniqRc::from_iter(0..4);
+    assert_eq!(*rc, [0, 1, 2, 3]);
+}
+
+#[test]
+#[should_panic(expected = "should not return shared")]
+fn shared_uniq_rc_from_iter_fail() {
+    struct Foo(Option<Weak<Self>>);
+    impl FromIterator<Foo> for Rc<Foo> {
+        fn from_iter<T: IntoIterator<Item = Foo>>(iter: T) -> Self {
+            let mut first = iter.into_iter().next().unwrap();
+            Rc::new_cyclic(|weak| {
+                first.0 = weak.clone().into();
+                first
+            })
+        }
+    }
+    let _: UniqRc<Foo> = UniqRc::from_iter([Foo(None)]);
 }
