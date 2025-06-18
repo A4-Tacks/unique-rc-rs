@@ -126,6 +126,51 @@ fn slice_rc_from_iter() {
 }
 
 #[test]
+fn shared_new() {
+    let rc = Rc::new(3);
+    let rc1 = rc.clone();
+
+    assert_eq!(Rc::strong_count(&rc), 2);
+    assert_eq!(Rc::weak_count(&rc), 0);
+    assert_eq!(Rc::strong_count(&rc1), 2);
+    assert_eq!(Rc::weak_count(&rc1), 0);
+
+    let mut unique_rc = UniqRc::new(rc);
+
+    assert_eq!(Rc::strong_count(&rc1), 1);
+    assert_eq!(Rc::weak_count(&rc1), 0);
+
+    *unique_rc = 4;
+    assert_eq!(*unique_rc, 4);
+}
+
+#[test]
+fn shared_weak_new() {
+    let rc = Rc::new(3);
+    let weak = Rc::downgrade(&rc);
+
+    assert_eq!(Rc::strong_count(&rc), 1);
+    assert_eq!(Rc::weak_count(&rc), 1);
+    assert_eq!(Weak::strong_count(&weak), 1);
+    assert_eq!(Weak::weak_count(&weak), 1);
+
+    let mut unique_rc = UniqRc::new(rc);
+
+    assert_eq!(Weak::strong_count(&weak), 0);
+    assert_eq!(Weak::weak_count(&weak), 0);
+
+    *unique_rc = 4;
+    assert_eq!(*unique_rc, 4);
+}
+
+#[test]
+fn assign() {
+    let mut rc = UniqRc::new_value([0, 1, 2]);
+    (&mut *rc)[2] += 1;
+    assert_eq!(*rc, [0, 1, 3]);
+}
+
+#[test]
 #[should_panic(expected = "should not return shared")]
 fn shared_uniq_rc_from_iter_fail() {
     struct Foo(Option<Weak<Self>>);

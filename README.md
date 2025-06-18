@@ -19,5 +19,15 @@ spawn(move || {
 assert_eq!(weak.upgrade(), None);
 ```
 
+Like a `Box`, `DerefMut`
+
+```rust
+use unique_rc::UniqRc;
+
+let mut unique_rc = UniqRc::new_value(3);
+*unique_rc += 1;
+assert_eq!(*unique_rc, 4);
+```
+
 # Safety
 - miri test passed
