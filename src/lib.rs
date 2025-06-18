@@ -211,7 +211,9 @@ impl<T: ?Sized> Deref for $UniqRc<T> {
 impl<T: ?Sized> DerefMut for $UniqRc<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         debug_assert_eq!($Rc::strong_count(&self.rc), 1);
-        $Rc::get_mut(&mut self.rc).unwrap()
+        debug_assert_eq!($Rc::weak_count(&self.rc), 0);
+        let rc = $Rc::get_mut(&mut self.rc);
+        unsafe { rc.unwrap_unchecked() }
     }
 }
 
