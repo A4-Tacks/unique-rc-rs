@@ -594,9 +594,21 @@ impl<T: ?Sized> $UniqRc<T> {
         &this.rc
     }
 
-    #[allow(clippy::ptr_cast_constness)]
     pub fn into_raw(this: Self) -> *mut T {
-        $Rc::into_raw(this.rc) as *mut T
+        $Rc::into_raw(this.rc).cast_mut()
+    }
+
+    /// Get inner pointer
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use unique_rc::UniqArc;
+    /// let mut uniq = UniqArc::new_value(3);
+    /// unsafe { *UniqArc::as_mut_ptr(&mut uniq) += 1 }
+    /// assert_eq!(*uniq, 4);
+    pub fn as_mut_ptr(this: &mut Self) -> *mut T {
+        $Rc::as_ptr(&this.rc).cast_mut()
     }
 
     /// # Safety
